@@ -1,0 +1,60 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  ubuntu:
+    name: Ubuntu
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Mikero Tools
+        uses: ./
+
+      - name: makepbo
+        run: |
+          which makepbo
+
+          makepbo -P test/addon addon.pbo
+
+      - name: extractpbo
+        run: |
+          which extractpbo
+
+          extractpbo -P addon.pbo /tmp/extracted
+
+
+  windows:
+    name: Windows
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Mikero Tools
+        uses: ./
+
+      - name: makepbo
+        run: |
+          Get-Command makepbo
+          
+          makepbo -P test/addon addon.pbo
+
+      - name: extractpbo
+        run: |
+          Get-Command extractpbo
+
+          extractpbo -P addon.pbo c:\extracted
+
+      - name: pboproject
+        run: |
+          Get-Command pboproject
+          pboproject -P
