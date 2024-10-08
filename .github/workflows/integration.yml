@@ -1,0 +1,143 @@
+name: Integration
+
+on:
+  pull_request_target:
+  push:
+
+jobs:
+  cba_a3:
+    name: CBA A3
+
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: mikero
+
+      - name: Install Arma 3 Tools
+        uses: arma-actions/arma3-tools@master
+        with:
+          toolsUrl: ${{ secrets.ARMA3_TOOLS_URL }}
+
+      - name: Install Mikero Tools
+        uses: ./mikero/
+
+      - name: Download game data
+        run: |
+          Invoke-WebRequest "$env:ARMA3_DATA_URL" -OutFile arma3.zip
+          $files = @("arma3.zip")
+          ForEach ($file in $files) {
+            Extract-7Zip -Path $file -DestinationPath .
+            Remove-Item $file
+          }
+        env:
+          ARMA3_DATA_URL: ${{ secrets.ARMA3_DATA_URL }}
+
+      - name: Checkout CBA A3
+        uses: actions/checkout@v2
+        with:
+          path: x\cba
+          ref: master
+          repository: CBATeam/CBA_A3.git
+
+      - name: Setup build environment
+        run: |
+          subst P: .
+          pboproject -P
+
+      - name: Build
+        run: py P:\x\cba\tools\make.py ci
+        env:
+          PYTHONUNBUFFERED: 1
+
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: cba a3 logs
+          path: temp/*.log
+
+      - name: Archive @cba_a3
+        uses: actions/upload-artifact@v2
+        with:
+          name: '@cba_a3'
+          path: x\cba\release\@cba_a3
+
+  ace3:
+    name: ACE3
+
+    runs-on: windows-2019
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          path: mikero
+
+      - name: Install Arma 3 Tools
+        uses: arma-actions/arma3-tools@master
+        with:
+          toolsUrl: ${{ secrets.ARMA3_TOOLS_URL }}
+
+      - name: Install Mikero Tools
+        uses: ./mikero/
+
+      - name: Download game data
+        run: |
+          Invoke-WebRequest "$env:ARMA3_DATA_URL" -OutFile arma3.zip
+          Invoke-WebRequest "$env:RHSAFRF_URL" -OutFile rhsafrf.zip
+          Invoke-WebRequest "$env:RHSGREF_URL" -OutFile rhsgref.zip
+          Invoke-WebRequest "$env:RHSSAF_URL" -OutFile rhssaf.zip
+          Invoke-WebRequest "$env:RHSUSF_URL" -OutFile rhsusf.zip
+          $files = @("arma3.zip", "rhsafrf.zip", "rhsgref.zip", "rhssaf.zip", "rhsusf.zip")
+          ForEach ($file in $files) {
+            Extract-7Zip -Path $file -DestinationPath .
+            Remove-Item $file
+          }
+        env:
+          ARMA3_DATA_URL: ${{ secrets.ARMA3_DATA_URL }}
+          RHSAFRF_URL: ${{ secrets.RHSAFRF_URL }}
+          RHSGREF_URL: ${{ secrets.RHSGREF_URL }}
+          RHSSAF_URL: ${{ secrets.RHSSAF_URL }}
+          RHSUSF_URL: ${{ secrets.RHSUSF_URL }}
+
+      - name: Checkout CBA A3
+        uses: actions/checkout@v2
+        with:
+          path: x\cba
+          ref: master
+          repository: CBATeam/CBA_A3.git
+
+      - name: Checkout ACE3
+        uses: actions/checkout@v2
+        with:
+          path: z\ace
+          ref: master
+          repository: acemod/ACE3.git
+
+      - name: Setup build environment
+        run: |
+          subst P: .
+          pboproject -P
+          xcopy /e /h /q z\ace\tools\pDummies\gm gm\
+          xcopy /e /h /q z\ace\tools\pDummies\vn vn\
+
+      - name: Build
+        run: py P:\z\ace\tools\make.py ci
+        env:
+          PYTHONUNBUFFERED: 1
+
+      - name: Archive logs
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: ace3 logs
+          path: temp/*.log
+
+      - name: Archive @ace
+        uses: actions/upload-artifact@v2
+        with:
+          name: '@ace3'
+          path: z\ace\release\@ace
